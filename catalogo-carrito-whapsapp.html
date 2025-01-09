@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo Fotográfico</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        #resumen-carrito {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: #f4f4f4;
+            padding: 10px;
+            border-bottom: 2px solid #ccc;
+            z-index: 1000;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #upload-container {
+            margin: 120px 20px 20px 20px;
+        }
+        .producto {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 10px;
+            display: inline-block;
+            width: 200px;
+            text-align: center;
+        }
+        .producto img {
+            width: 100%;
+            height: auto;
+        }
+        .carrito-item {
+            margin: 5px 0;
+        }
+        #catalogo {
+            margin-top: 20px;
+        }
+        .botones-carrito button {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="resumen-carrito">
+        <h3>Resumen del Carrito</h3>
+        <div id="detalle-carrito"></div>
+        <div class="botones-carrito">
+            <button id="limpiar-carrito">Limpiar Carrito</button>
+            <button id="enviar-whatsapp">Enviar por WhatsApp</button>
+        </div>
+    </div>
+
+    <div id="upload-container">
+        <h1>Catálogo Fotográfico</h1>
+        <input type="file" id="upload" accept=".xlsx" />
+    </div>
+
+    <div id="catalogo"></div>
+
+    <script>
+        let carrito = {};
+
+        // Evento para cargar el archivo Excel
+        document.getElementById('upload').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function (event) {
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
+                const productos = XLSX.utils.sheet_to_json(sheet);
+
+                const catalogoDiv = document.getElementById('catalogo');
+                catalogoDiv.innerHTML = '';
+
+                productos.forEach(producto => {
+                    const productoDiv = document.createElement('div');
+                    productoDiv.className = 'producto';
+                    productoDiv.innerHTML = `
+                        <img src="${producto.Imagen || 'https://via.placeholder.com/200'}" alt="${producto.Producto}">
+                        <h3>${producto.Producto}</h3>
+                        <p>${producto.Descripcion}</p>
+                        <p><strong>Precio:</strong> $${producto.Precio.toFixed(2)}</p>
+                        <label for="cantidad-${producto.id}">Cantidad:</label>
+                        <select id="cantidad-${producto.id}">
+                            ${[...Array(10).keys()].map(i => `<option value="${i + 1}">${i + 1}</option>`).join('')}
+                        </select>
+                        <button onclick="agregarAlCarrito(${producto.id}, '${producto.Producto}', ${producto.Precio})">Agregar al Carrito</button>
+                    `;
+                    catalogoDiv.appendChild(productoDiv);
+                });
+            };
+
+            reader.readAsArrayBuffer(file);
+        });
+
+        // Función para agregar al carrito
+        function agregarAlCarrito(id, nombre, precio) {
+            const cantidad = parseInt(document.getElementById(`cantidad-${id}`).value);
+            if (carrito[id]) {
+                carrito[id].cantidad += cantidad;
+            } else {
+                carrito[id] = { nombre, precio, cantidad };
+            }
+            actualizarCarrito();
+        }
+
+        // Función para actualizar el resumen del carrito
+        function actualizarCarrito() {
+            const detalleCarritoDiv = document.getElementById('detalle-carrito');
+            detalleCarritoDiv.innerHTML = '';
+
+            let total = 0;
+            for (const id in carrito) {
+                const item = carrito[id];
+                total += item.precio * item.cantidad;
+                detalleCarritoDiv.innerHTML += `
+                    <div class="carrito-item">
+                        <strong>${item.nombre}</strong> - Cantidad: ${item.cantidad} - Total: $${(item.precio * item.cantidad).toFixed(2)}
+                    </div>
+                `;
+            }
+
+            detalleCarritoDiv.innerHTML += `<p><strong>Total del Carrito:</strong> $${total.toFixed(2)}</p>`;
+        }
+
+        // Evento para limpiar el carrito
+        document.getElementById('limpiar-carrito').addEventListener('click', function () {
+            carrito = {};
+            actualizarCarrito();
+        });
+
+        // Evento para enviar el carrito por WhatsApp
+        document.getElementById('enviar-whatsapp').addEventListener('click', function () {
+            if (Object.keys(carrito).length === 0) {
+                alert('El carrito está vacío.');
+                return;
+            }
+
+            let mensaje = '¡Hola! Me gustaría hacer un pedido:\n\n';
+            let total = 0;
+            for (const id in carrito) {
+                const item = carrito[id];
+                total += item.precio * item.cantidad;
+                mensaje += `*${item.nombre}* - Cantidad: ${item.cantidad} - Total: $${(item.precio * item.cantidad).toFixed(2)}\n`;
+            }
+
+            mensaje += `\n*Total del Pedido:* $${total.toFixed(2)}`;
+
+            // Crear enlace de WhatsApp
+            const telefono = '5493415482240'; // Reemplazar con el número de WhatsApp
+            const url = `https://wa.me/${telefono}?text=${encodeURIComponent(mensaje)}`;
+
+            window.open(url, '_blank');
+        });
+    </script>
+</body>
+</html>
+

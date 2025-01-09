@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo para WhatsApp</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <h1>Catálogo Fotográfico</h1>
+    <input type="file" id="upload" accept=".xlsx" />
+    <button id="enviar-whatsapp" style="display: none;">Enviar catálogo por WhatsApp</button>
+
+    <script>
+        let productos = [];
+
+        document.getElementById('upload').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function (event) {
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
+                productos = XLSX.utils.sheet_to_json(sheet);
+
+                document.getElementById('enviar-whatsapp').style.display = 'block';
+            };
+
+            reader.readAsArrayBuffer(file);
+        });
+
+        document.getElementById('enviar-whatsapp').addEventListener('click', function () {
+            let mensaje = '*Catálogo de Productos*%0A%0A';
+            productos.forEach(producto => {
+                mensaje += `*${producto.Producto}*%0A`;
+                mensaje += `Descripción: ${producto.Descripcion}%0A`;
+                mensaje += `Precio: $${producto.Precio.toFixed(2)}%0A%0A`;
+            });
+
+            const enlace = `https://wa.me/?text=${mensaje}`;
+            window.open(enlace, '_blank');
+        });
+    </script>
+</body>
+</html>

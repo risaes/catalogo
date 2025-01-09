@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo Fotográfico</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <style>
+        .producto {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 10px;
+            display: inline-block;
+            width: 200px;
+            text-align: center;
+        }
+        .producto img {
+            width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Catálogo Fotográfico</h1>
+    <input type="file" id="upload" accept=".xlsx" />
+    <div id="catalogo"></div>
+
+    <script>
+        document.getElementById('upload').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function (event) {
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
+                const productos = XLSX.utils.sheet_to_json(sheet);
+
+                const catalogoDiv = document.getElementById('catalogo');
+                catalogoDiv.innerHTML = '';
+
+                productos.forEach(producto => {
+                    const productoDiv = document.createElement('div');
+                    productoDiv.className = 'producto';
+                    productoDiv.innerHTML = `
+                        <img src="${producto.Imagen || 'https://via.placeholder.com/200'}" alt="${producto.Producto || 'Producto sin nombre'}">
+                        <h3>${producto.Producto || 'Producto sin nombre'}</h3>
+                        <p>${producto.Descripcion || 'Sin descripción'}</p>
+                        <p><strong>Peso:</strong> ${producto.Peso || 'No especificado'}</p>
+                        <p><strong>Precio:</strong> $${(producto.Precio || 0).toFixed(2)}</p>
+                        <p><strong>Categoría:</strong> ${producto.Categorias || 'No especificada'}</p>
+                    `;
+                    catalogoDiv.appendChild(productoDiv);
+                });
+            };
+
+            reader.readAsArrayBuffer(file);
+        });
+    </script>
+</body>
+</html>
